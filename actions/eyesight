@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# @author      Dominique Da Silva
+# @created     2021-03
+# @url         https://github.com/atika/todo.txt-actions
+
+WIDTH=${WIDTH:-50}
+DEFAULT_LINE_HELPER_LENGTH=$WIDTH
+
+shopt -s nocasematch
+
+if [ "$1" = "eyesight" ]
+then
+    howrun=$2
+    term=$3
+else
+    howrun=$1
+    term=$2
+fi
+
+[ "$1" = "usage" ] && helpcmd=`basename $0`
+[ "$2" = "-h" ] || [ "$2" == "--help" ] && helpcmd="$1"
+
+usage () {
+  cat << EOF
+    $helpcmd <project,context,today>
+      Replaces all TERM (regex) on line ITEM# with NEWTERM.
+EOF
+}
+
+[ $helpcmd ] && usage && exit 0
+[ -z ${howrun} ] && usage && exit 1
+
+# Load helpers
+[[ -x "$TODO_ACTIONS_DIR/_helpers" ]] && source "$TODO_ACTIONS_DIR/_helpers" || die "Helpers file _helpers not found."
+
+tasks=`mktemp`
+plain=false
+search=false
+[[ $TODOTXT_PLAIN -eq 1 ]] && plain=true
+[[ ! -z ${term} ]] && search=true
+
+# fetch all the tasks
+_list "$TODO_FILE" | sed '$d' | sed '$d' > $tasks
+
+uppercase () {
+    tr '[[:lower:]]' '[[:upper:]]'
+}
+
+groupAndList () {
+    local sigil=$1                              # + or @
+    local list=()                               # keep matched words in a list
+    local groupName=$(uppercase <<< ${group})    # uppercased group name
+    $plain && local align="center"              # align for group title
+
+    # Print group header
+    ! $search && local title="$groupName" &&  line '' '=' center
+
+    while read -r name
+    do
+        $search && ! [[ "$name" =~ "$term" ]] && continue
+        # print group title
+        local title=`sed "s/^$sigil//" <<< $name | uppercase` && line '' — $align
+        # get corresponding group tasks
+        grep $name $tasks
+        list+=($name)
+        ! $search && echo
+    done < <(listWordsWithSigil "$sigil")
+
+    groupsCount="${#list[@]}"
+    if $search
+    then
+        [[ $groupsCount -eq 0 ]] && die "No ${group} found that match: ${term}"
+    else
+        list="${list[@]}"
+        list="${list// /\\|}"
+        count=$(grep -vc "$list" $tasks)
+        if [[ ${count} -gt 0 ]]
+        then
+            title="WITHOUT ${groupName} ($count)" && line '' — $align
+            grep -v "$list" $tasks
+        fi
+        if [ "$TODOTXT_VERBOSE" -gt 0 ]
+        then
+            echo "--"
+            echo "TODO: ${groupsCount} ${group} found."
+        fi
+    fi
+}
+
+filter () {
+    $plain && fold -s -w $WIDTH || cat
+}
+
+clean () {
+    [[ -f $tasks ]] && rm $tasks
+}
+trap clean EXIT
+
+case $howrun
+in
+    project|pv)
+        group="projects"
+        groupAndList "+" | filter
+        ;;
+    context|cv)
+        group="contexts"
+        groupAndList "@" | filter
+        ;;
+    today)
+        if [[ -x "$TODO_ACTIONS_DIR/due" ]]
+        then
+            "$TODO_ACTIONS_DIR/due" today
+        else
+            clean
+            die "TODO: action not found: due."
+        fi
+        ;;
+esac

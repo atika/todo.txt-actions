@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Helpers helpers
+_repeat_line_sequence () {
+  local L=
+  for i in `seq 1 $1`; do
+    L="$L$2"
+  done
+  echo -n "$L"
+}
+
+# Print a line
+# Parameters:
+#   1: Line length
+#   2: Sigle
+#   3: Alignment <left,right,center>
+line () {
+  local l=${1:-${DEFAULT_LINE_HELPER_LENGTH:-40}}   # line length
+  local s=${2:-\-}   # line sigle
+  local p=${3:-left} # title alignment
+  [[ $TODOTXT_PLAIN -eq 0 ]] && \
+    local c=${LIGHT_BLACK/\\} && local n=${DEFAULT/\\}
+
+  # Line with Title
+  if [[ ! -z "$title" ]]
+  then
+    l=$(($l - ${#title} - 4))
+  else
+    p="notitle"
+  fi
+
+  # Print line
+  echo -ne "$c"
+  case $p
+  in
+    left)
+        echo -en "$s$s$n ${title} $c"
+        _repeat_line_sequence $l $s
+        ;;
+    right)
+        _repeat_line_sequence $l $s
+        echo -en "$n ${title} $c$s$s"
+        ;;
+    center)
+        mid=$(($l / 2))
+        _repeat_line_sequence $mid $s
+        echo -en "$s$n ${title} $c$s"
+        _repeat_line_sequence $mid $s
+        [[ $((${#title} % 2)) -eq 1 ]] && echo -n "$s"
+        ;;
+    *)
+        _repeat_line_sequence $l $s
+    ;;
+  esac
+  echo -e "$n"
+  title=""
+}
+

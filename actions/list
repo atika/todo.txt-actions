@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# @author      Dominique Da Silva
+# @created     2021-03
+# @url         https://github.com/atika/todo.txt-actions
+
+# LS command with the date removed
+[ "$1" = "usage" ] && helpcmd=`basename $0`
+[ "$2" = "-h" ] || [ "$2" == "--help" ] && helpcmd="$1"
+
+if [ $helpcmd ]
+then
+  cat << EOF
+    $helpcmd [TERM...]
+      same as ls command without the date.
+EOF
+	exit 0
+fi
+
+shift
+
+COLOR_DATE_BEGIN=$(echo -e $COLOR_DATE)
+COLOR_DATE_BEGIN=${COLOR_DATE_BEGIN/\[/\\[}
+export HIDE_CUSTOM_SUBSTITUTION='[[:space:]]'${COLOR_DATE_BEGIN}'[[:digit:]]\{4\}-[[:digit:]]\{2\}-[[:digit:]]\{2\}'
+_list "$TODO_FILE" "$@"

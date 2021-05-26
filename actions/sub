@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# @author      Dominique Da Silva
+# @created     2021-03
+# @url         https://github.com/atika/todo.txt-actions
+
+[ "$1" = "usage" ] && helpcmd=`basename $0`
+[ "$2" = "-h" ] || [ "$2" == "--help" ] && helpcmd="$1"
+
+usage () {
+  cat << EOF
+    $helpcmd ITEM# TERM NEWTERM
+      Replaces all TERM (regex) on line ITEM# with NEWTERM.
+EOF
+}
+
+if [ $helpcmd ]
+then
+  usage
+  exit 0
+fi
+
+shift
+
+item="$1"
+search="$2"
+replace="$3"
+
+[[ -z ${item} ]] || [[ -z ${search} ]] && usage && exit 1
+
+# Get the task
+getTodo $item
+
+# Replace <search> with <replace>
+newtodo=$(sed "s@${search/@/\\@}@${replace/@/\\@}@g" <<<"$todo")
+
+[[ $? -ne 0 ]] && exit $?
+
+# Display changes and prompt before replacing anything
+echo "Replace ${todo}"
+echo -n "  with: ${newtodo} ? (y/n) "
+read -e -r ANSWER
+
+if [[ ${ANSWER} == "y" ]]
+then
+	"$TODO_SH" command replace "$item" "${newtodo}"
+else
+	echo "TODO: No changes."
+fi

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+[ "$1" = "usage" ] && helpcmd=`basename $0`
+[ "$2" = "-h" ] || [ "$2" == "--help" ] && helpcmd="$1"
+
+if [ $helpcmd ]
+then
+  cat << EOF
+    $helpcmd
+      Removes blank lines from todo.txt.
+EOF
+	exit 0
+fi
+
+LINES_BEFORE=$(cat $TODO_FILE | wc -l)
+# Remove blank lines
+sed -i.bak -e "/^$/d" "$TODO_FILE"
+LINES_AFTER=$(cat $TODO_FILE | wc -l)
+echo "Cleanup removed $((${LINES_BEFORE:-0} - ${LINES_AFTER:-0})) empty lines."
+
+_list "$TODO_FILE"
+
+

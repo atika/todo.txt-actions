@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# @author      Dominique Da Silva
+# @created     2021-03
+# @url         https://github.com/atika/todo.txt-actions
+
+WIDTH=${WIDTH:-50}
+DEFAULT_LINE_HELPER_LENGTH=$WIDTH
+
+[ "$1" = "usage" ] && helpcmd=`basename $0`
+[ "$2" = "-h" ] || [ "$2" == "--help" ] && helpcmd="$1"
+
+if [ $helpcmd ]
+then
+  cat << EOF
+    $helpcmd
+      Show task by due dates.
+EOF
+	exit 0
+fi
+
+shift
+
+# Load helpers
+[[ -x "$TODO_ACTIONS_DIR/_helpers" ]] && source "$TODO_ACTIONS_DIR/_helpers" || die "Helpers file _helpers not found."
+
+printheader () {
+	local title="${1}"
+	line $WIDTH '=' center
+}
+printsubtitle () {
+	local title="${1}"
+	line 20 '-'
+}
+
+getDate () {
+	[[ $OSTYPE == 'darwin'* ]] && date -v"${1}d" +'%F' || date -d"${1} day" +'%F'
+}
+
+TODAY=$(getDate +0)
+TOMORROW=$(getDate +1)
+
+# Display only user specific date
+arg="${1}"
+
+case "${1}"
+in
+	today) SPECIFIC_DATE=$TODAY ;;
+	tomorrow|+1) SPECIFIC_DATE=$TOMORROW ;;
+	[+-][0123456789]) SPECIFIC_DATE=`getDate ${arg}` ;;
+esac
+
+if [ $SPECIFIC_DATE ]
+then
+	_list "$TODO_FILE" "due:$SPECIFIC_DATE" && exit
+fi
+
+DUE_DATES=$(grep -oE 'due:\d{4}-\d{2}-\d{2}' $TODO_FILE | sed 's/due://g' | sort | uniq)
+LATERS=false
+OVERDUES=false
+
+for DUE_DATE in $DUE_DATES
+do
+	case $DUE_DATE
+	in
+		$TODAY)
+			printheader "TODAY"
+			;;
+		$TOMORROW)
+			printheader "TOMORROW"
+			;;
+		*)
+			DIFF=$(echo "(`date -j -f '%F' ${DUE_DATE} +'%s'`-`date -j -f '%F' ${TODAY} +'%s'`)/86400" | bc)
+			if [[ ${DIFF} -lt 0 ]]
+			then
+				! $OVERDUES && printheader "OVERDUE" && OVERDUES=true
+				printsubtitle "${DIFF//-} DAYS AGO"
+			elif [[ ${DIFF} -le 6 ]]
+			then
+				printheader "DUE IN ${DIFF//-} DAYS"
+			elif ! $LATERS
+			then
+				printheader "LATER"
+				LATERS=true
+			fi
+			;;
+	esac
+	_list "$TODO_FILE" "due:$DUE_DATE" | sed '$d' | sed '$d'
+	echo
+done

@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# @author      Dominique Da Silva
+# @created     2021-03
+# @url         https://github.com/atika/todo.txt-actions
+
+[ "$1" = "usage" ] && helpcmd=`basename $0`
+[ "$2" = "-h" ] || [ "$2" == "--help" ] && helpcmd="$1"
+shift
+
+if [ $helpcmd ]
+then
+  cat << EOF
+    $helpcmd [LINE_LENGTH]
+      today view of all task.
+EOF
+	exit 0
+fi
+
+TODAY_DATE=`date +'%F'`                   # TODAY DATE
+ll=${WIDTH:-40}                           # LINE LENGTH
+DEFAULT_LINE_HELPER_LENGTH=${ll}
+
+overdues=()
+
+tasks=`mktemp`
+today=`mktemp`
+exec 3>$tasks
+exec 4>$today
+
+# Save all the tasks
+"$TODO_FULL_SH" ls | sed '$d' | sed '$d' >&3
+
+[[ -x "$TODO_ACTIONS_DIR/_helpers" ]] && source "$TODO_ACTIONS_DIR/_helpers" || die "Helpers file _helpers not found."
+
+datediff () {
+  echo "(`date -j -f '%F' ${1} +'%s'`-`date -j -f '%F' ${TODAY_DATE} +'%s'`)/86400" | bc
+}
+
+# VERIFY OVERDUES TASKS
+while read -r duedate
+do
+  offset=`datediff ${duedate:4}`
+  [[ $offset -lt 0 ]] && overdues+=("${duedate:4}")
+done < <(grep -oE 'due:\d{4}-\d{2}-\d{2}' $tasks | sort | uniq)
+# flag if have overdues tasks
+[[ ${#overdues[@]} -gt 0 ]] && has_overdues=true || has_overdues=false
+# grep overdues tasks pattern
+overduespattern=${overdues[@]}
+overduespattern=${overduespattern// /\\|}
+
+# PRINT TODAY TASKS OR ALL TASKS (EXCEPT OVERDUES)
+if grep "due:${TODAY_DATE}" $tasks >&4
+then
+    title="Today"
+    line $ll — left
+    cat $today
+    line
+    grep -v "due:${TODAY_DATE}${overduespattern:+\\|$overduespattern}" $tasks
+else
+    title="Todos"
+    line $ll — left
+    if $has_overdues
+    then
+      grep -v "$overduespattern" $tasks || echo "<nothing there>"
+    else
+      cat $tasks
+    fi
+fi
+
+if $has_overdues
+then
+  echo
+  title="Overdues"
+  line $ll — left
+  grep "$overduespattern" $tasks
+fi
+
+count=$((`cat $tasks | wc -l`))
+echo "--"
+echo "`getPrefix $TODO_FILE `: $count tasks shown."
+
+exec 3>&-
+exec 4>&-
+rm $tasks
+rm $today
+
