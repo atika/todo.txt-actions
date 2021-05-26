@@ -21,10 +21,12 @@ This repository contains some of my actions for the __todo.txt__ cli program to 
 
 File containing some methods used on different actions.
 
+<a name="adda"></a>
 ### adda ([source](http://github.com/ginatrapani/todo.txt-cli/blob/addons/.todo.actions.d/adda))
 
 Add a todo and prioritize with (A)
 
+<a name="addx"></a>
 ### addx ([source](http://github.com/ginatrapani/todo.txt-cli/blob/addons/.todo.actions.d/addx))
 
 Add a todo and prioritize with (X)
@@ -130,6 +132,65 @@ Display a view with todos due for today.
 
 ## More
 
+### Cache your todo list to display at login
+
+__BASHRC__
+```sh
+# shell logout script
+_logout () {
+    nohup $HOME/.logoutscript 2>&1 >/dev/null &
+}
+trap _logout EXIT
+
+if exist "todo.sh"
+then
+  alias t="todo.sh -d $HOME/.todo/config"
+  # display todos if the cache file exists
+  # and if there are only one ssh session or the user is in the first tmux pane (%0).
+  if [[ -f /var/tmp/${USER}.todo.list ]] && test `who | awk -v p=${TMUX_PANE:-no} '/tmux/{if(p=="%0"||p=="no"){next}} /ttys|pts/{c+=1} END{print c}'` -le 1
+  then
+    cat /var/tmp/${USER}.todo.list
+  fi
+fi
+```
+
+
+__Logout Script__
+```sh
+#!/bin/bash
+
+# $HOME/.logoutscript
+
+# Todo.txt cache
+# ===================================================================
+# Find in tmp a file named $USER.todo.list newer than todo.txt
+# If the file does not exists or is not newer then create the file
+# ===================================================================
+TODO_TXT="$HOME/.todo/todo.txt"
+
+todosl () { echo -e "\\033[1;30m—— \\0033[0mTodos\\033[1;30m ——————————————————————————————\033[0m"; }
+todoel () { echo -e "\\033[1;30m---------------------------------------\\033[0m"; }
+
+todosh () { /usr/local/bin/todo.sh -d ${HOME}/.todo/config "$@"; }
+todock () { sed '$d' | sed '$d' | grep --color=never . || echo "No todos, good job!"; }
+todols () {
+  echo
+  todosh help today 2>&1 >/dev/null && todosh today | todock || {
+    todosl
+    todosh ls | todock
+  }
+  todoel
+}
+
+if [[ -f ${TODO_TXT} ]] && [[ -x /usr/local/bin/todo.sh ]]
+then
+  find /var/tmp/ -type f -name "$USER.todo.list" -newer ${TODO_TXT} 2>/dev/null | grep -q . || todols | (umask 0177 && cat > /var/tmp/$USER.todo.list);
+fi
+~
+```
+
+### Configuration tip
+
 Configuration to use a todo.txt file in the current directory or to __edit a todo.txt__ file on a different directory or with a different name.
 
 ```sh
@@ -184,3 +245,4 @@ export COLOR_PROJECT='\033[38;5;197m'
 export COLOR_META='\033[38;5;50m'
 export COLOR_DONE='\033[38;5;102m'
 ```
+
