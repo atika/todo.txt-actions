@@ -1,6 +1,6 @@
 # My Todo.txt actions
 
-This repository contains some of my actions for todo.txt cli program to help me manage my todo list from the command line. Some action has been written by me, other actions have been modified to work on `macOS` and `Linux`.
+This repository contains some of my actions for the __todo.txt__ cli program to help me manage my todo list from the command line. Some actions have been written by me, other actions have been modified to work on `macOS` and `Linux`.
 
 ## Actions
 
