@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # AUTHOR: severoraz@gmail.com
 # LICENSE: CC-BY-SA v3.0
 # DESCRIPTION
@@ -454,7 +454,8 @@ case $2 in
             # editting of the file. It is done without the -i flag of sed
             # because it is not equivalently interpreted by BSD sed, which may
             # be present in some computers
-            sed "${ii}s/.*/$repstr/" "$srcfile" > "$srcfile.setdue"
+            repstr_safe=$(printf '%s' "$repstr" | sed 's/[\/&]/\\&/g')
+            sed "${ii}s/.*/${repstr_safe}/" "$srcfile" > "$srcfile.setdue"
             if [[ $? -eq 0 ]]
             then
                 cp "$srcfile" "$srcfile.bak"

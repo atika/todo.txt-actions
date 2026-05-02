@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # @author      Dominique Da Silva
 # @created     2021-03
@@ -36,6 +36,9 @@ printsubtitle () {
 getDate () {
 	[[ $OSTYPE == 'darwin'* ]] && date -v"${1}d" +'%F' || date -d"${1} day" +'%F'
 }
+epochDate () {
+	[[ $OSTYPE == 'darwin'* ]] && date -j -f '%F' "${1}" +'%s' || date -d "${1}" +'%s'
+}
 
 TODAY=$(getDate +0)
 TOMORROW=$(getDate +1)
@@ -55,7 +58,7 @@ then
 	_list "$TODO_FILE" "due:$SPECIFIC_DATE" && exit
 fi
 
-DUE_DATES=$(grep -oE 'due:\d{4}-\d{2}-\d{2}' $TODO_FILE | sed 's/due://g' | sort | uniq)
+DUE_DATES=$(grep -oE 'due:[0-9]{4}-[0-9]{2}-[0-9]{2}' $TODO_FILE | sed 's/due://g' | sort | uniq)
 LATERS=false
 OVERDUES=false
 
@@ -70,7 +73,7 @@ do
 			printheader "TOMORROW"
 			;;
 		*)
-			DIFF=$(echo "(`date -j -f '%F' ${DUE_DATE} +'%s'`-`date -j -f '%F' ${TODAY} +'%s'`)/86400" | bc)
+			DIFF=$(echo "($(epochDate ${DUE_DATE})-$(epochDate ${TODAY}))/86400" | bc)
 			if [[ ${DIFF} -lt 0 ]]
 			then
 				! $OVERDUES && printheader "OVERDUE" && OVERDUES=true
