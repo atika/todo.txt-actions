@@ -1,9 +1,8 @@
 #compdef todo.sh t
 
 # Completion for todo.sh and the 't' alias.
-# Calls todo.sh directly (routes through SSH on machines with TODO_REMOTE set).
 # Uses -p (plain mode) to avoid ANSI codes in output.
-# Projects/contexts use a single call to minimize SSH round-trips.
+# Projects/contexts are cached to minimize SSH round-trips.
 
 setopt localoptions braceccl
 zmodload -F zsh/stat b:zstat 2>/dev/null
@@ -54,7 +53,7 @@ case $state in
     "archive:moves done items from todo.txt to done.txt."
     "clean:removes blank lines from todo.txt."
     "command:run internal commands only"
-    "cv:calendar view of tasks."
+    "cv:context view of tasks."
     "deduplicate:removes duplicate lines from todo.txt."
     "del:deletes the item on line NUMBER in todo.txt."
     "depri:remove prioritization from item"
@@ -78,9 +77,8 @@ case $state in
     "note:manage notes attached to a task."
     "prepend:adds to the beginning of the item on line NUMBER text TEXT."
     "pri:adds or replace in NUMBER the priority PRIORITY (upper case letter)."
-    "pv:preview view of tasks."
+    "pv:project view of tasks."
     "replace:replace in NUMBER the TEXT."
-    "remdup:remove exact duplicates from todo.txt."
     "report:adds the number of open and done items to report.txt."
     "rls:list tasks for all remote hosts."
     "rm:deletes the item on line NUMBER (alias for del)."
